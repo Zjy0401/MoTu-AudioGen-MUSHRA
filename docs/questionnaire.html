@@ -940,27 +940,59 @@
     }
 
     function sendSubmission(payload) {
-      const body = JSON.stringify(payload);
+      return new Promise((resolve, reject) => {
+        const iframeName = `submission-target-${Date.now()}`;
+        const iframe = document.createElement('iframe');
+        const form = document.createElement('form');
+        const field = document.createElement('textarea');
+        let settled = false;
 
-      if (navigator.sendBeacon) {
-        const queued = navigator.sendBeacon(SUBMIT_ENDPOINT, new Blob([body], { type: 'text/plain;charset=utf-8' }));
-        if (queued) {
-          return Promise.resolve({ mode: 'beacon' });
+        iframe.name = iframeName;
+        iframe.style.display = 'none';
+
+        form.action = SUBMIT_ENDPOINT;
+        form.method = 'POST';
+        form.target = iframeName;
+        form.style.display = 'none';
+
+        field.name = 'payload';
+        field.value = JSON.stringify(payload);
+
+        const finish = (result, error) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          clearTimeout(timeoutId);
+          form.remove();
+          iframe.remove();
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        };
+
+        iframe.addEventListener('load', () => {
+          if (!settled && form.parentNode) {
+            finish({ mode: 'form' });
+          }
+        });
+
+        form.appendChild(field);
+        document.body.appendChild(iframe);
+        document.body.appendChild(form);
+
+        const timeoutId = setTimeout(() => {
+          finish(null, new Error('提交超时'));
+        }, 20000);
+
+        try {
+          form.submit();
+        } catch (error) {
+          finish(null, error);
         }
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      return fetch(SUBMIT_ENDPOINT, {
-        method: 'POST',
-        mode: 'no-cors',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body
-      }).then(() => ({ mode: 'fetch' })).finally(() => clearTimeout(timeoutId));
+      });
     }
 
     async function submitResults() {
@@ -987,8 +1019,8 @@
       try {
         const result = await sendSubmission(payload);
 
-        submitStatus.textContent = result.mode === 'beacon'
-          ? '已发送提交请求，后台稍后会收到结果。'
+        submitStatus.textContent = result.mode === 'form'
+          ? '提交成功，感谢您的参与！'
           : '提交成功，感谢您的参与！';
         localStorage.setItem('moe-subjective-questionnaire-submitted', JSON.stringify({
           submittedAt: new Date().toISOString(),

@@ -3,7 +3,8 @@ const SHEET_NAME = 'responses';
 
 function doPost(e) {
   try {
-    const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const rawBody = (e && e.parameter && e.parameter.payload) || (e && e.postData && e.postData.contents) || '{}';
+    const payload = JSON.parse(rawBody);
     const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = spreadsheet.getSheetByName(SHEET_NAME);
 
