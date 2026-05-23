@@ -440,6 +440,50 @@
       resize: vertical;
     }
 
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .action-button {
+      padding: 12px 16px;
+      min-height: 48px;
+      font-weight: 700;
+      border: 1px solid rgba(31, 41, 51, 0.13);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .action-button:hover { transform: translateY(-1px); }
+
+    .action-button.primary {
+      background: linear-gradient(135deg, var(--accent), #127784);
+      color: white;
+      border-color: transparent;
+    }
+
+    .action-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(13, 118, 104, 0.08);
+      color: var(--accent);
+      font-size: 14px;
+      min-height: 52px;
+      white-space: pre-wrap;
+    }
+
     .footer-note {
       margin-top: 12px;
       color: var(--muted);
@@ -496,7 +540,6 @@
             我们主要生成各种环境音、音效与简短的音乐片段（30s）。您的反馈对我们改进文本到音频生成模型具有重要意义。
           </p>
           <div class="badge-row">
-            <span class="badge"><b>盲听设计</b> 不显示模型信息</span>
             <span class="badge"><b>16 个样本</b> 按题号顺序完成</span>
             <span class="badge"><b>5 分制</b> 两个评价维度</span>
           </div>
@@ -605,6 +648,11 @@
           <label for="comments" class="field-label">备注</label>
           <textarea id="comments" placeholder="可简要说明你的感受。"></textarea>
         </div>
+        <div class="actions">
+          <button class="action-button primary" id="submitBtn" type="button">提交结果</button>
+          <button class="action-button" id="resetBtn" type="button">清空本地填写</button>
+        </div>
+        <div class="status" id="submitStatus">完成所有题目后，点击提交结果即可发送到后台表格。</div>
         <div class="footer-note">填写过程会自动保存在本地浏览器缓存中。</div>
         <div class="closing-thanks">感谢您的参与！</div>
       </div>
@@ -750,6 +798,11 @@
     const progressFill = document.getElementById('progressFill');
     const progressLabel = document.getElementById('progressLabel');
     const progressHint = document.getElementById('progressHint');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const submitStatus = document.getElementById('submitStatus');
+
+    const SUBMIT_ENDPOINT = 'PASTE_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
 
     function escapeHtml(value) {
       return value
@@ -879,6 +932,62 @@
       localStorage.setItem('moe-subjective-questionnaire-draft', JSON.stringify(payload));
     }
 
+    function validateSubmission(payload) {
+      const incomplete = payload.responses.filter((item) => item.consistency === 0 || item.quality === 0).length;
+      if (incomplete > 0) {
+        return `还有 ${incomplete} 个题目未完成两项评分。`;
+      }
+      return '';
+    }
+
+    async function submitResults() {
+      const payload = collectPayload();
+      const validationMessage = validateSubmission(payload);
+      if (validationMessage) {
+        submitStatus.textContent = validationMessage;
+        return;
+      }
+
+      if (!SUBMIT_ENDPOINT || SUBMIT_ENDPOINT.includes('PASTE_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE')) {
+        submitStatus.textContent = '请先把 Google Apps Script 的 Web App URL 填到 questionnaire.html 里的 SUBMIT_ENDPOINT。';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitStatus.textContent = '正在提交到后台表格...';
+
+      try {
+        await fetch(SUBMIT_ENDPOINT, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        submitStatus.textContent = '已发送提交请求，后台表格稍后可见结果。';
+        localStorage.setItem('moe-subjective-questionnaire-submitted', JSON.stringify({
+          submittedAt: new Date().toISOString(),
+          endpoint: SUBMIT_ENDPOINT
+        }));
+      } catch (error) {
+        submitStatus.textContent = `提交失败：${error.message}`;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    function clearLocalDraft() {
+      localStorage.removeItem('moe-subjective-questionnaire-draft');
+      document.getElementById('comments').value = '';
+      document.querySelectorAll('input[type="radio"]').forEach((radio) => {
+        radio.checked = false;
+      });
+      updateProgress();
+      submitStatus.textContent = '已清空本地填写内容。';
+    }
+
     function restoreDraft() {
       const saved = localStorage.getItem('moe-subjective-questionnaire-draft');
       if (!saved) {
@@ -912,6 +1021,9 @@
         field.addEventListener('change', () => persistDraft(false));
       }
     });
+
+    submitBtn.addEventListener('click', submitResults);
+    resetBtn.addEventListener('click', clearLocalDraft);
 
     renderItems();
     restoreDraft();

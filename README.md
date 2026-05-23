@@ -26,6 +26,22 @@ Recommended publish setup:
 
 The audio samples used by the questionnaire are already copied into `docs/assets/audio/`, and `docs/.nojekyll` is included so files with leading underscores are served correctly.
 
+## Submission Backend
+
+The questionnaire now includes a "Submit" button. It sends the collected ratings to a Google Apps Script Web App, which appends each submission to a Google Sheet.
+
+Setup steps:
+
+1. Open `backend/google-apps-script.gs` in Google Apps Script.
+2. Replace the placeholder project with a script bound to the spreadsheet at `1AH2jGIcQQlC41ZTAemye_LjcwD2U28Bzk3lYx9jXb_o`.
+3. Deploy it as a Web App with access set to "Anyone".
+4. Copy the Web App URL into `docs/questionnaire.html` and replace `PASTE_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE` in `SUBMIT_ENDPOINT`.
+5. Reload the GitHub Pages site and use the Submit button in the questionnaire.
+
+The script writes each submission into a `responses` sheet, keeping the full responses JSON in one cell and the metadata in separate columns.
+
+If you prefer a different backend later, the questionnaire only needs the submit endpoint swapped out; the front-end payload format stays the same.
+
 
 ### Download
 
