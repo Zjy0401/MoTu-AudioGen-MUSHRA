@@ -939,6 +939,30 @@
       return '';
     }
 
+    function sendSubmission(payload) {
+      const body = JSON.stringify(payload);
+
+      if (navigator.sendBeacon) {
+        const queued = navigator.sendBeacon(SUBMIT_ENDPOINT, new Blob([body], { type: 'text/plain;charset=utf-8' }));
+        if (queued) {
+          return Promise.resolve({ mode: 'beacon' });
+        }
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      return fetch(SUBMIT_ENDPOINT, {
+        method: 'POST',
+        mode: 'no-cors',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body
+      }).then(() => ({ mode: 'fetch' })).finally(() => clearTimeout(timeoutId));
+    }
+
     async function submitResults() {
       const payload = collectPayload();
       const validationMessage = validateSubmission(payload);
@@ -960,21 +984,12 @@
       submitBtn.disabled = true;
       submitStatus.textContent = '正在提交到后台表格...';
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
       try {
-        await fetch(SUBMIT_ENDPOINT, {
-          method: 'POST',
-          mode: 'no-cors',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload)
-        });
+        const result = await sendSubmission(payload);
 
-        submitStatus.textContent = '提交成功，感谢您的参与！';
+        submitStatus.textContent = result.mode === 'beacon'
+          ? '已发送提交请求，后台稍后会收到结果。'
+          : '提交成功，感谢您的参与！';
         localStorage.setItem('moe-subjective-questionnaire-submitted', JSON.stringify({
           submittedAt: new Date().toISOString(),
           endpoint: SUBMIT_ENDPOINT
@@ -984,7 +999,6 @@
           ? '提交超时，请检查手机网络后重试。'
           : `提交失败：${error.message}`;
       } finally {
-        clearTimeout(timeoutId);
         submitBtn.disabled = false;
       }
     }
