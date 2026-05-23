@@ -947,6 +947,11 @@
         return;
       }
 
+      if (location.protocol === 'file:') {
+        submitStatus.textContent = '当前是本地 file:// 页面，请使用 GitHub Pages 的 https 地址提交，否则手机浏览器可能会卡住。';
+        return;
+      }
+
       if (!SUBMIT_ENDPOINT || SUBMIT_ENDPOINT.includes('PASTE_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE')) {
         submitStatus.textContent = '请先把 Google Apps Script 的 Web App URL 填到 questionnaire.html 里的 SUBMIT_ENDPOINT。';
         return;
@@ -955,10 +960,14 @@
       submitBtn.disabled = true;
       submitStatus.textContent = '正在提交到后台表格...';
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       try {
         await fetch(SUBMIT_ENDPOINT, {
           method: 'POST',
           mode: 'no-cors',
+          signal: controller.signal,
           headers: {
             'Content-Type': 'text/plain;charset=utf-8'
           },
@@ -971,8 +980,11 @@
           endpoint: SUBMIT_ENDPOINT
         }));
       } catch (error) {
-        submitStatus.textContent = `提交失败：${error.message}`;
+        submitStatus.textContent = error.name === 'AbortError'
+          ? '提交超时，请检查手机网络后重试。'
+          : `提交失败：${error.message}`;
       } finally {
+        clearTimeout(timeoutId);
         submitBtn.disabled = false;
       }
     }
