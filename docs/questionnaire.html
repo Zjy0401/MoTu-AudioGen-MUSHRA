@@ -484,6 +484,20 @@
       white-space: pre-wrap;
     }
 
+    .result-output {
+      width: 100%;
+      min-height: 180px;
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(31, 41, 51, 0.13);
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--text);
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 14px;
+      resize: vertical;
+    }
+
     .footer-note {
       margin-top: 12px;
       color: var(--muted);
@@ -652,7 +666,8 @@
           <button class="action-button primary" id="submitBtn" type="button">提交结果</button>
           <button class="action-button" id="resetBtn" type="button">清空本地填写</button>
         </div>
-        <div class="status" id="submitStatus">完成所有题目后，点击提交结果即可发送到后台表格。</div>
+        <div class="status" id="submitStatus">完成所有题目后，点击“提交结果”即可发送；如提交失败，可按 Ctrl + Shift + C 复制汇总结果发送给实验负责人。</div>
+        <textarea class="result-output" id="resultOutput" readonly placeholder="提交失败时，汇总结果会显示在这里，格式为：序号, REL得分, OVL得分。"></textarea>
         <div class="footer-note">填写过程会自动保存在本地浏览器缓存中。</div>
       </div>
     </section>
@@ -800,8 +815,8 @@
     const submitBtn = document.getElementById('submitBtn');
     const resetBtn = document.getElementById('resetBtn');
     const submitStatus = document.getElementById('submitStatus');
-
-    const SUBMIT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyLax_yk45JYHnBGoi49YKNovClodSl-DVw1UgAUrw-_21naHeN7iYGgmNL_WSQgfH7/exec';
+    const resultOutput = document.getElementById('resultOutput');
+    const SUBMIT_ENDPOINT = 'https://1309116471-7o217srvbo.ap-beijing.tencentscf.com';
 
     function escapeHtml(value) {
       return value
@@ -939,60 +954,52 @@
       return '';
     }
 
-    function sendSubmission(payload) {
-      return new Promise((resolve, reject) => {
-        const iframeName = `submission-target-${Date.now()}`;
-        const iframe = document.createElement('iframe');
-        const form = document.createElement('form');
-        const field = document.createElement('textarea');
-        let settled = false;
+    function buildResultSummary(payload) {
+      const rows = payload.responses.map((item) => [
+        item.id,
+        item.consistency,
+        item.quality
+      ].join(','));
 
-        iframe.name = iframeName;
-        iframe.style.display = 'none';
+      return [
+        '序号,REL得分,OVL得分',
+        ...rows
+      ].join('\n');
+    }
 
-        form.action = SUBMIT_ENDPOINT;
-        form.method = 'POST';
-        form.target = iframeName;
-        form.style.display = 'none';
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
 
-        field.name = 'payload';
-        field.value = JSON.stringify(payload);
+      resultOutput.value = text;
+      resultOutput.focus();
+      resultOutput.select();
+      document.execCommand('copy');
+    }
 
-        const finish = (result, error) => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          clearTimeout(timeoutId);
-          form.remove();
-          iframe.remove();
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        };
-
-        iframe.addEventListener('load', () => {
-          if (!settled && form.parentNode) {
-            finish({ mode: 'form' });
-          }
-        });
-
-        form.appendChild(field);
-        document.body.appendChild(iframe);
-        document.body.appendChild(form);
-
-        const timeoutId = setTimeout(() => {
-          finish(null, new Error('提交超时'));
-        }, 20000);
-
-        try {
-          form.submit();
-        } catch (error) {
-          finish(null, error);
-        }
+    async function sendSubmission(payload) {
+      const response = await fetch(SUBMIT_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
+
+      let result = {};
+      try {
+        result = await response.json();
+      } catch (error) {
+        result = {};
+      }
+
+      if (!response.ok || result.ok === false) {
+        throw new Error(result.error || `提交失败，状态码：${response.status}`);
+      }
+
+      return result;
     }
 
     async function submitResults() {
@@ -1003,33 +1010,29 @@
         return;
       }
 
-      if (location.protocol === 'file:') {
-        submitStatus.textContent = '当前是本地 file:// 页面，请使用 GitHub Pages 的 https 地址提交，否则手机浏览器可能会卡住。';
-        return;
-      }
-
-      if (!SUBMIT_ENDPOINT || SUBMIT_ENDPOINT.includes('PASTE_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE')) {
-        submitStatus.textContent = '请先把 Google Apps Script 的 Web App URL 填到 questionnaire.html 里的 SUBMIT_ENDPOINT。';
-        return;
-      }
-
       submitBtn.disabled = true;
-      submitStatus.textContent = '正在提交到后台表格...';
+      submitStatus.textContent = '正在提交结果...';
 
       try {
         const result = await sendSubmission(payload);
-
-        submitStatus.textContent = result.mode === 'form'
-          ? '提交成功，感谢您的参与！'
+        resultOutput.value = buildResultSummary(payload);
+        submitStatus.textContent = result.file
+          ? `提交成功，感谢您的参与！结果文件：${result.file}`
           : '提交成功，感谢您的参与！';
         localStorage.setItem('moe-subjective-questionnaire-submitted', JSON.stringify({
           submittedAt: new Date().toISOString(),
-          endpoint: SUBMIT_ENDPOINT
+          endpoint: SUBMIT_ENDPOINT,
+          file: result.file || ''
         }));
       } catch (error) {
-        submitStatus.textContent = error.name === 'AbortError'
-          ? '提交超时，请检查手机网络后重试。'
-          : `提交失败：${error.message}`;
+        const summary = buildResultSummary(payload);
+        resultOutput.value = summary;
+        try {
+          await copyText(summary);
+          submitStatus.textContent = `在线提交失败，已复制汇总结果。请粘贴发送给实验负责人。错误：${error.message}`;
+        } catch (copyError) {
+          submitStatus.textContent = `在线提交失败，请手动选中下方结果并复制。错误：${error.message}`;
+        }
       } finally {
         submitBtn.disabled = false;
       }
@@ -1081,6 +1084,12 @@
 
     submitBtn.addEventListener('click', submitResults);
     resetBtn.addEventListener('click', clearLocalDraft);
+    document.addEventListener('keydown', (event) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'c') {
+        event.preventDefault();
+        submitResults();
+      }
+    });
 
     renderItems();
     restoreDraft();

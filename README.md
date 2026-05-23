@@ -26,21 +26,32 @@ Recommended publish setup:
 
 The audio samples used by the questionnaire are already copied into `docs/assets/audio/`, and `docs/.nojekyll` is included so files with leading underscores are served correctly.
 
-## Submission Backend
+## Result Collection
 
-The questionnaire now includes a "Submit" button. It sends the collected ratings to a Google Apps Script Web App, which appends each submission to a Google Sheet.
+The questionnaire submits results to a Tencent Cloud Function endpoint:
 
-Setup steps:
+```text
+https://1309116471-7o217srvbo.ap-beijing.tencentscf.com
+```
 
-1. Open `backend/google-apps-script.gs` in Google Apps Script.
-2. Replace the placeholder project with a script bound to the spreadsheet at `1AH2jGIcQQlC41ZTAemye_LjcwD2U28Bzk3lYx9jXb_o`.
-3. Deploy it as a Web App with access set to "Anyone".
-4. The current Web App URL is `https://script.google.com/macros/s/AKfycbyLax_yk45JYHnBGoi49YKNovClodSl-DVw1UgAUrw-_21naHeN7iYGgmNL_WSQgfH7/exec`, and it is already wired into `docs/questionnaire.html`.
-5. Reload the GitHub Pages site and use the Submit button in the questionnaire.
+If online submission fails, the page falls back to a compact score summary that participants can copy with `Ctrl + Shift + C` and send manually.
 
-The script writes each submission into a `responses` sheet, keeping the full responses JSON in one cell and the metadata in separate columns.
+Collection steps:
 
-If you prefer a different backend later, the questionnaire only needs the submit endpoint swapped out; the front-end payload format stays the same.
+1. Open the questionnaire page.
+2. Complete all 16 items.
+3. Click "提交结果".
+4. If the page reports an online submission failure, paste and send the copied fallback text to the experimenter.
+
+The fallback text uses one row per item:
+
+```text
+序号,REL得分,OVL得分
+1,5,4
+2,4,3
+```
+
+The old Google Apps Script backend is still available at `backend/google-apps-script.gs` if you want to switch back later.
 
 
 ### Download
