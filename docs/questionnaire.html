@@ -654,7 +654,6 @@
         </div>
         <div class="status" id="submitStatus">完成所有题目后，点击提交结果即可发送到后台表格。</div>
         <div class="footer-note">填写过程会自动保存在本地浏览器缓存中。</div>
-        <div class="closing-thanks">感谢您的参与！</div>
       </div>
     </section>
   </main>
@@ -966,7 +965,7 @@
           body: JSON.stringify(payload)
         });
 
-        submitStatus.textContent = '已发送提交请求，后台表格稍后可见结果。';
+        submitStatus.textContent = '提交成功，感谢您的参与！';
         localStorage.setItem('moe-subjective-questionnaire-submitted', JSON.stringify({
           submittedAt: new Date().toISOString(),
           endpoint: SUBMIT_ENDPOINT
