@@ -14,6 +14,18 @@ Listening tests are widely used to assess the quality of audio systems. In the l
 
 ##### [View Demo](https://audiolabs.github.io/webMUSHRA)
 
+## GitHub Pages Questionnaire
+
+A ready-to-publish questionnaire page is available in `docs/questionnaire.html`. The root `docs/index.html` file redirects to it, so you can publish the `docs/` folder directly as a GitHub Pages site.
+
+Recommended publish setup:
+
+1. Push this repository to GitHub.
+2. In the repository settings, enable GitHub Pages and choose the `main` branch with the `docs/` folder as the source.
+3. Open the published site root. It will land on the questionnaire page automatically.
+
+The audio samples used by the questionnaire are already copied into `docs/assets/audio/`, and `docs/.nojekyll` is included so files with leading underscores are served correctly.
+
 
 ### Download
 

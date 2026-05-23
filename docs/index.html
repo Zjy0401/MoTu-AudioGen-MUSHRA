@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="MoTu-Audio 主观实验问卷页面，支持样本播放、偏好评分和结果导出。">
+  <title>MoTu-Audio 主观实验问卷</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --bg-soft: #fbf8f2;
+      --card: rgba(255, 255, 255, 0.88);
+      --card-solid: #ffffff;
+      --text: #1f2933;
+      --muted: #5f6b7a;
+      --line: rgba(31, 41, 51, 0.12);
+      --accent: #0f7b6c;
+      --accent-2: #d97706;
+      --accent-3: #7c3aed;
+      --good: #16a34a;
+      --bad: #ef4444;
+      --shadow: 0 18px 50px rgba(43, 47, 54, 0.12);
+      --radius: 24px;
+      --radius-sm: 16px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(15, 123, 108, 0.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(217, 119, 6, 0.18), transparent 28%),
+        linear-gradient(180deg, #f8f2e8 0%, #f3ede3 54%, #efe7db 100%);
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(31, 41, 51, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31, 41, 51, 0.025) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent 80%);
+      pointer-events: none;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .container {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-inner {
+      padding: 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(15, 123, 108, 0.08);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(15, 123, 108, 0.12);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      margin-top: 14px;
+      font-size: clamp(30px, 4vw, 50px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      margin-top: 14px;
+      max-width: 66ch;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(31, 41, 51, 0.1);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .badge b {
+      color: var(--text);
+    }
+
+    .meta-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(31, 41, 51, 0.13);
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus,
+    .mode-button:focus-visible,
+    .action-button:focus-visible,
+    .sample-button:focus-visible,
+    .range-wrap input:focus-visible {
+      border-color: rgba(15, 123, 108, 0.6);
+      box-shadow: 0 0 0 4px rgba(15, 123, 108, 0.12);
+      outline: none;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mode-button,
+    .sample-button,
+    .action-button {
+      border: 1px solid rgba(31, 41, 51, 0.13);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .mode-button {
+      padding: 12px;
+      text-align: left;
+      display: grid;
+      gap: 4px;
+    }
+
+    .mode-button strong {
+      font-size: 15px;
+    }
+
+    .mode-button span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mode-button.is-active {
+      background: linear-gradient(135deg, rgba(15, 123, 108, 0.1), rgba(217, 119, 6, 0.08));
+      border-color: rgba(15, 123, 108, 0.35);
+      box-shadow: inset 0 0 0 1px rgba(15, 123, 108, 0.04);
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+      font-size: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .progress-panel {
+      margin: 18px 0 22px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(31, 41, 51, 0.08);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.25s ease;
+    }
+
+    .instruction-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0 22px;
+    }
+
+    .instruction {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(31, 41, 51, 0.1);
+    }
+
+    .instruction strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .instruction p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .study-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      padding: 22px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(31, 41, 51, 0.11);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 16px 36px rgba(43, 47, 54, 0.08);
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .card-head h3 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .prompt {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .pill {
+      flex: 0 0 auto;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(15, 123, 108, 0.08);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .sample-box {
+      border-radius: 18px;
+      border: 1px solid rgba(31, 41, 51, 0.1);
+      background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.96));
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .sample-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .sample-top strong {
+      font-size: 15px;
+    }
+
+    .sample-top span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    audio {
+      width: 100%;
+      border-radius: 999px;
+    }
+
+    .rating-row {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .rating-labels {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .range-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    .range-wrap input {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .range-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .range-value {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 123, 108, 0.08);
+      color: var(--accent);
+      font-weight: 700;
+      min-width: 62px;
+      text-align: center;
+    }
+
+    .note-field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .note-field textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .final-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .action-button {
+      padding: 12px 16px;
+      min-height: 48px;
+      font-weight: 700;
+    }
+
+    .action-button.primary {
+      background: linear-gradient(135deg, var(--accent), #117f8f);
+      color: white;
+      border-color: transparent;
+    }
+
+    .action-button.secondary {
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(15, 123, 108, 0.08);
+      color: var(--accent);
+      font-size: 14px;
+      min-height: 52px;
+      white-space: pre-wrap;
+    }
+
+    .preview {
+      margin-top: 12px;
+      width: 100%;
+      min-height: 180px;
+      border-radius: 18px;
+      border: 1px solid rgba(31, 41, 51, 0.12);
+      background: rgba(248, 250, 252, 0.96);
+      color: var(--text);
+      padding: 14px;
+      resize: vertical;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .sample-grid,
+      .instruction-grid,
+      .final-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .container {
+        width: min(100% - 20px, var(--max));
+        padding-top: 18px;
+      }
+
+      .panel-inner,
+      .card {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      .section-title {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .card-head,
+      .progress-top,
+      .range-meta {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .split,
+      .mode-switch {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+    <script>window.location.replace('questionnaire.html');</script>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="panel">
+        <div class="panel-inner">
+          <span class="eyebrow">Subjective Listening Study</span>
+          <h1>MoTu-Audio 主观实验问卷</h1>
+          <p class="lead">
+            这是一个给被试者使用的静态问卷页。请先完整试听每个题目的两个样本，再填写偏好评分和补充意见。
+            页面会在本地生成结果，适合直接部署到 GitHub Pages。
+          </p>
+          <div class="badge-row">
+            <span class="badge"><b>双样本比较</b> A / B 直接试听</span>
+            <span class="badge"><b>支持 10s / 30s</b> 可按实验切换</span>
+            <span class="badge"><b>无后端</b> 可导出 JSON</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-inner meta-form">
+          <div class="field">
+            <label for="participantId">被试编号</label>
+            <input id="participantId" type="text" placeholder="例如 P001" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label>实验组</label>
+            <div class="mode-switch" id="modeSwitch">
+              <button class="mode-button is-active" type="button" data-mode="short">
+                <strong>10 秒组</strong>
+                <span>10 个 prompt，适合主实验</span>
+              </button>
+              <button class="mode-button" type="button" data-mode="long">
+                <strong>30 秒组</strong>
+                <span>3 个 prompt，适合补充验证</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="field">
+              <label for="deviceType">播放设备</label>
+              <select id="deviceType">
+                <option value="headphones">耳机</option>
+                <option value="speakers">扬声器</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="listeningEnv">环境</label>
+              <select id="listeningEnv">
+                <option value="quiet">安静</option>
+                <option value="moderate">一般</option>
+                <option value="noisy">嘈杂</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="field">
+              <label for="experienceLevel">听音经验</label>
+              <select id="experienceLevel">
+                <option value="novice">较少</option>
+                <option value="some">一般</option>
+                <option value="expert">较多</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="confidenceLevel">完成信心</label>
+              <select id="confidenceLevel">
+                <option value="high">很有把握</option>
+                <option value="medium">基本有把握</option>
+                <option value="low">不太确定</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel progress-panel">
+      <div class="panel-inner">
+        <div class="progress-top">
+          <span id="progressLabel">已完成 0 / 10 个题目</span>
+          <span id="progressHint">请先试听每个样本，再移动评分滑块</span>
+        </div>
+        <div class="progress-bar" aria-hidden="true">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="instruction-grid">
+      <div class="instruction">
+        <strong>1. 先听完 A 和 B</strong>
+        <p>每个题目都包含一对样本。建议完整播放后再做判断，不要只听开头。</p>
+      </div>
+      <div class="instruction">
+        <strong>2. 按偏好打分</strong>
+        <p>滑块左侧代表更偏向 A，右侧代表更偏向 B。中间表示没有明显偏好。</p>
+      </div>
+      <div class="instruction">
+        <strong>3. 下载结果</strong>
+        <p>页面不会自动上传服务器。完成后点击导出按钮生成 JSON，便于后续汇总。</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <div>
+          <h2>样本与评分</h2>
+          <p id="sectionDesc">当前展示 10 秒组的 10 个 prompt。</p>
+        </div>
+        <p>建议使用耳机完成试听</p>
+      </div>
+      <div id="studyList" class="study-list"></div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <div class="panel-inner">
+        <div class="section-title" style="margin-bottom: 8px;">
+          <div>
+            <h2>总体反馈</h2>
+            <p>这些信息会和每个题目的偏好评分一起导出。</p>
+          </div>
+        </div>
+
+        <div class="final-grid">
+          <div class="field">
+            <label for="overallPreference">整体偏好</label>
+            <select id="overallPreference">
+              <option value="A">整体更偏向 A</option>
+              <option value="balanced">A / B 差不多</option>
+              <option value="B">整体更偏向 B</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="overallFatigue">听音疲劳</label>
+            <select id="overallFatigue">
+              <option value="low">低</option>
+              <option value="medium">中等</option>
+              <option value="high">高</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="overallDifficulty">任务难度</label>
+            <select id="overallDifficulty">
+              <option value="easy">容易</option>
+              <option value="normal">一般</option>
+              <option value="hard">较难</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="overallAttention">注意力状态</label>
+            <select id="overallAttention">
+              <option value="focused">全程专注</option>
+              <option value="okay">基本专注</option>
+              <option value="tired">有些分神</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="note-field" style="margin-top: 14px;">
+          <label for="comments" class="field label">补充意见</label>
+          <textarea id="comments" placeholder="如果你觉得某些样本有明显噪声、失真、节奏问题或其他异常，可以写在这里。"></textarea>
+        </div>
+
+        <div class="actions">
+          <button class="action-button primary" id="downloadBtn" type="button">下载结果 JSON</button>
+          <button class="action-button secondary" id="copyBtn" type="button">复制结果 JSON</button>
+          <button class="action-button secondary" id="clearBtn" type="button">清空当前问卷</button>
+        </div>
+
+        <div class="status" id="status">尚未生成结果。完成所有题目后，可直接下载或复制。</div>
+        <textarea id="preview" class="preview" readonly placeholder="导出的 JSON 会在这里预览"></textarea>
+        <div class="footer-note">
+          GitHub Pages 会忽略以下划线开头的文件，已通过 .nojekyll 解决。若你后续替换样本，请保持相对路径不变。
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STUDIES = {
+      short: {
+        label: '10 秒组',
+        description: '当前展示 10 秒组的 10 个 prompt。',
+        items: [
+          {
+            id: '_fKntnlIYTQ',
+            prompt: 'The low quality recording features a live performance of a big band that consists of shimmering hi hats, steel pan melody, punchy snare, soft kick hits, bright brass melody, groovy double bass melody and cowbell percussion. The recording is a bit noisy and it sounds happy and fun.',
+            a: 'assets/audio/10s/audioldm2_large/_fKntnlIYTQ.wav',
+            b: 'assets/audio/10s/musicgen_large/_fKntnlIYTQ.wav'
+          },
+          {
+            id: '_G3lYKAITu8',
+            prompt: 'This audio contains people playing rhythms and melodies on bells with sticks. This is an amateur recording.',
+            a: 'assets/audio/10s/audioldm2_large/_G3lYKAITu8.wav',
+            b: 'assets/audio/10s/musicgen_large/_G3lYKAITu8.wav'
+          },
+          {
+            id: '_hYBs0xee9Y',
+            prompt: 'The low quality recording features a passionately played electric guitar solo melody with a chorus pedal effect on. The recording is in mono and it is noisy.',
+            a: 'assets/audio/10s/audioldm2_large/_hYBs0xee9Y.wav',
+            b: 'assets/audio/10s/musicgen_large/_hYBs0xee9Y.wav'
+          },
+          {
+            id: '_Rpn2FUAUgY',
+            prompt: 'The low quality recording features a sustained string melody, followed by woodwind and mellow marimba melodies. It sounds emotional, passionate and sad - like something you would hear in the movies, as the background music.',
+            a: 'assets/audio/10s/audioldm2_large/_Rpn2FUAUgY.wav',
+            b: 'assets/audio/10s/musicgen_large/_Rpn2FUAUgY.wav'
+          },
+          {
+            id: '88me9bBzrk',
+            prompt: 'Someone is playing a fast melody on a low bansuri flute along with someone playing tablas and a shrutibox in the background. This song may be playing at a live performance.',
+            a: 'assets/audio/10s/audioldm2_large/88me9bBzrk.wav',
+            b: 'assets/audio/10s/musicgen_large/88me9bBzrk.wav'
+          },
+          {
+            id: '105687',
+            prompt: 'A male speech and metal clanging.',
+            a: 'assets/audio/10s/audioldm2_large/105687.wav',
+            b: 'assets/audio/10s/musicgen_large/105687.wav'
+          },
+          {
+            id: '105383',
+            prompt: 'A man talking before and after a young kid talks as plastic rattles followed by an electronic beep',
+            a: 'assets/audio/10s/audioldm2_large/105383.wav',
+            b: 'assets/audio/10s/musicgen_large/105383.wav'
+          },
+          {
+            id: '105355',
+            prompt: 'Continuous thunder',
+            a: 'assets/audio/10s/audioldm2_large/105355.wav',
+            b: 'assets/audio/10s/musicgen_large/105355.wav'
+          },
+          {
+            id: '75855',
+            prompt: 'A man speaking as wind blows through foliage and on a microphone',
+            a: 'assets/audio/10s/audioldm2_large/75855.wav',
+            b: 'assets/audio/10s/musicgen_large/75855.wav'
+          },
+          {
+            id: '43613',
+            prompt: 'Small aircraft taking off and receding into the distance',
+            a: 'assets/audio/10s/audioldm2_large/43613.wav',
+            b: 'assets/audio/10s/musicgen_large/43613.wav'
+          }
+        ]
+      },
+      long: {
+        label: '30 秒组',
+        description: '当前展示 30 秒组的 3 个 prompt。',
+        items: [
+          {
+            id: '5',
+            prompt: 'Groovy instrumental funk rock track with occasional guitar solos that give you a feeling of longing.',
+            a: 'assets/audio/30s/audioldm2_large/5.wav',
+            b: 'assets/audio/30s/musicgen_large/5.wav'
+          },
+          {
+            id: '24',
+            prompt: 'a danceable electronic track in the genre of dance',
+            a: 'assets/audio/30s/audioldm2_large/24.wav',
+            b: 'assets/audio/30s/musicgen_large/24.wav'
+          },
+          {
+            id: '33',
+            prompt: 'Bluesy rock and roll boogie with piano and distorted guitars, male singer and roomy drums.',
+            a: 'assets/audio/30s/audioldm2_large/33.wav',
+            b: 'assets/audio/30s/musicgen_large/33.wav'
+          }
+        ]
+      }
+    };
+
+    const state = {
+      mode: 'short'
+    };
+
+    const storageKey = 'motu-audio-questionnaire-draft';
+    const studyList = document.getElementById('studyList');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const progressHint = document.getElementById('progressHint');
+    const sectionDesc = document.getElementById('sectionDesc');
+    const status = document.getElementById('status');
+    const preview = document.getElementById('preview');
+
+    function sanitizeParticipantId(value) {
+      return value.trim().replace(/[^a-zA-Z0-9_-]+/g, '_');
+    }
+
+    function currentStudy() {
+      return STUDIES[state.mode];
+    }
+
+    function renderStudy() {
+      const study = currentStudy();
+      sectionDesc.textContent = study.description;
+      studyList.innerHTML = study.items.map((item, index) => {
+        const cardId = `item-${state.mode}-${item.id}`;
+        return `
+          <article class="card" data-item-id="${item.id}" data-mode="${state.mode}">
+            <div class="card-head">
+              <div>
+                <h3>题目 ${index + 1}</h3>
+                <p class="prompt">${escapeHtml(item.prompt)}</p>
+              </div>
+              <div class="pill">${study.label}</div>
+            </div>
+            <div class="sample-grid">
+              <div class="sample-box">
+                <div class="sample-top">
+                  <strong>样本 A</strong>
+                  <span>${item.a.split('/').pop()}</span>
+                </div>
+                <audio controls preload="none" src="${item.a}"></audio>
+              </div>
+              <div class="sample-box">
+                <div class="sample-top">
+                  <strong>样本 B</strong>
+                  <span>${item.b.split('/').pop()}</span>
+                </div>
+                <audio controls preload="none" src="${item.b}"></audio>
+              </div>
+            </div>
+            <div class="rating-row">
+              <div class="range-meta">
+                <span>偏好评分</span>
+                <span class="range-value" data-value-for="${cardId}">0</span>
+              </div>
+              <div class="range-labels">
+                <span>明显偏向 A</span>
+                <span>无偏好</span>
+                <span>明显偏向 B</span>
+              </div>
+              <div class="range-wrap">
+                <input
+                  id="${cardId}"
+                  type="range"
+                  min="-3"
+                  max="3"
+                  step="1"
+                  value="0"
+                  data-card-range
+                >
+              </div>
+            </div>
+            <div class="note-field" style="margin-top: 14px;">
+              <label for="note-${cardId}">备注</label>
+              <textarea id="note-${cardId}" placeholder="可写下音质、噪声、失真、清晰度或其他观察"></textarea>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      bindCardEvents();
+      updateProgress();
+    }
+
+    function bindCardEvents() {
+      const ranges = studyList.querySelectorAll('[data-card-range]');
+      ranges.forEach((range) => {
+        range.addEventListener('input', () => {
+          const valueTag = document.querySelector(`[data-value-for="${range.id}"]`);
+          if (valueTag) {
+            valueTag.textContent = range.value;
+          }
+          updateProgress();
+          persistDraft(false);
+        });
+      });
+    }
+
+    function updateProgress() {
+      const study = currentStudy();
+      const completed = Array.from(studyList.querySelectorAll('[data-card-range]')).filter((range) => range.value !== '0').length;
+      const total = study.items.length;
+      const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+      progressFill.style.width = `${pct}%`;
+      progressLabel.textContent = `已完成 ${completed} / ${total} 个题目`;
+      progressHint.textContent = completed === total ? '全部题目已填写完毕，可以导出结果。' : '请先试听每个样本，再移动评分滑块';
+    }
+
+    function collectResponses() {
+      const study = currentStudy();
+      const participantId = sanitizeParticipantId(document.getElementById('participantId').value || 'anonymous');
+      return {
+        participantId,
+        mode: state.mode,
+        modeLabel: study.label,
+        capturedAt: new Date().toISOString(),
+        deviceType: document.getElementById('deviceType').value,
+        listeningEnv: document.getElementById('listeningEnv').value,
+        experienceLevel: document.getElementById('experienceLevel').value,
+        confidenceLevel: document.getElementById('confidenceLevel').value,
+        overallPreference: document.getElementById('overallPreference').value,
+        overallFatigue: document.getElementById('overallFatigue').value,
+        overallDifficulty: document.getElementById('overallDifficulty').value,
+        overallAttention: document.getElementById('overallAttention').value,
+        comments: document.getElementById('comments').value.trim(),
+        responses: study.items.map((item) => {
+          const range = document.getElementById(`item-${state.mode}-${item.id}`);
+          const note = document.getElementById(`note-item-${state.mode}-${item.id}`);
+          return {
+            id: item.id,
+            prompt: item.prompt,
+            preference: Number(range.value),
+            note: note.value.trim(),
+            sampleA: item.a,
+            sampleB: item.b
+          };
+        })
+      };
+    }
+
+    function validatePayload(payload) {
+      const incomplete = payload.responses.filter((response) => response.preference === 0).length;
+      if (!payload.participantId || payload.participantId === 'anonymous') {
+        return '请先填写被试编号。';
+      }
+      if (incomplete > 0) {
+        return `还有 ${incomplete} 个题目未评分。`; 
+      }
+      return '';
+    }
+
+    function renderPreview(payload) {
+      preview.value = JSON.stringify(payload, null, 2);
+    }
+
+    function persistDraft(showMessage = true) {
+      const payload = collectResponses();
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+      renderPreview(payload);
+      if (showMessage) {
+        status.textContent = '已自动保存当前填写内容到本地浏览器缓存。';
+      }
+    }
+
+    function downloadJson() {
+      const payload = collectResponses();
+      const validationMessage = validatePayload(payload);
+      if (validationMessage) {
+        status.textContent = validationMessage;
+        return;
+      }
+
+      const filename = `${payload.participantId}_${payload.mode}_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      status.textContent = `结果已生成并开始下载：${filename}`;
+      renderPreview(payload);
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+
+    async function copyJson() {
+      const payload = collectResponses();
+      const validationMessage = validatePayload(payload);
+      if (validationMessage) {
+        status.textContent = validationMessage;
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+        status.textContent = '结果 JSON 已复制到剪贴板。';
+        renderPreview(payload);
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+      } catch (error) {
+        status.textContent = '复制失败，请改用下载按钮。';
+      }
+    }
+
+    function clearForm() {
+      localStorage.removeItem(storageKey);
+      document.getElementById('participantId').value = '';
+      document.getElementById('deviceType').value = 'headphones';
+      document.getElementById('listeningEnv').value = 'quiet';
+      document.getElementById('experienceLevel').value = 'novice';
+      document.getElementById('confidenceLevel').value = 'high';
+      document.getElementById('overallPreference').value = 'A';
+      document.getElementById('overallFatigue').value = 'low';
+      document.getElementById('overallDifficulty').value = 'easy';
+      document.getElementById('overallAttention').value = 'focused';
+      document.getElementById('comments').value = '';
+      renderStudy();
+      status.textContent = '已清空当前问卷。';
+      preview.value = '';
+    }
+
+    function restoreDraft() {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) {
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(saved);
+        if (payload.mode && STUDIES[payload.mode]) {
+          setMode(payload.mode, false);
+        }
+        document.getElementById('participantId').value = payload.participantId || '';
+        document.getElementById('deviceType').value = payload.deviceType || 'headphones';
+        document.getElementById('listeningEnv').value = payload.listeningEnv || 'quiet';
+        document.getElementById('experienceLevel').value = payload.experienceLevel || 'novice';
+        document.getElementById('confidenceLevel').value = payload.confidenceLevel || 'high';
+        document.getElementById('overallPreference').value = payload.overallPreference || 'A';
+        document.getElementById('overallFatigue').value = payload.overallFatigue || 'low';
+        document.getElementById('overallDifficulty').value = payload.overallDifficulty || 'easy';
+        document.getElementById('overallAttention').value = payload.overallAttention || 'focused';
+        document.getElementById('comments').value = payload.comments || '';
+
+        payload.responses?.forEach((response) => {
+          const range = document.getElementById(`item-${state.mode}-${response.id}`);
+          const note = document.getElementById(`note-item-${state.mode}-${response.id}`);
+          if (range) {
+            range.value = response.preference ?? 0;
+            const valueTag = document.querySelector(`[data-value-for="${range.id}"]`);
+            if (valueTag) {
+              valueTag.textContent = range.value;
+            }
+          }
+          if (note) {
+            note.value = response.note || '';
+          }
+        });
+
+        renderPreview(collectResponses());
+        updateProgress();
+      } catch (error) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function setMode(mode, rerender = true) {
+      state.mode = mode;
+      document.querySelectorAll('.mode-button').forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.mode === mode);
+      });
+      if (rerender) {
+        renderStudy();
+      }
+    }
+
+    document.getElementById('modeSwitch').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-mode]');
+      if (!button) {
+        return;
+      }
+      setMode(button.dataset.mode);
+      persistDraft(false);
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadJson);
+    document.getElementById('copyBtn').addEventListener('click', copyJson);
+    document.getElementById('clearBtn').addEventListener('click', clearForm);
+
+    [
+      'participantId',
+      'deviceType',
+      'listeningEnv',
+      'experienceLevel',
+      'confidenceLevel',
+      'overallPreference',
+      'overallFatigue',
+      'overallDifficulty',
+      'overallAttention',
+      'comments'
+    ].forEach((id) => {
+      document.getElementById(id).addEventListener('input', () => persistDraft(false));
+      document.getElementById(id).addEventListener('change', () => persistDraft(false));
+    });
+
+    const queryMode = new URLSearchParams(window.location.search).get('mode');
+    if (queryMode && STUDIES[queryMode]) {
+      state.mode = queryMode;
+    }
+
+    renderStudy();
+    restoreDraft();
+    persistDraft(false);
+  </script>
+</body>
+</html>

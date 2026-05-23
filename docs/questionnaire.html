@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MoTu-AudioGen 主观评测实验问卷页，支持 16 个音频样本的 1-5 分评分。">
+  <title>MoTu-AudioGen的主观评测实验</title>
+  <style>
+    :root {
+      --bg: #f5efe4;
+      --bg-2: #fff9f0;
+      --card: rgba(255, 255, 255, 0.9);
+      --text: #1f2933;
+      --muted: #5f6b7a;
+      --line: rgba(31, 41, 51, 0.12);
+      --accent: #0d7668;
+      --accent-2: #c77618;
+      --shadow: 0 18px 50px rgba(43, 47, 54, 0.12);
+      --radius: 24px;
+      --radius-sm: 16px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(13, 118, 104, 0.16), transparent 34%),
+        radial-gradient(circle at top right, rgba(199, 118, 24, 0.16), transparent 30%),
+        linear-gradient(180deg, #f9f2e7 0%, #f5ede0 46%, #efe4d6 100%);
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(31, 41, 51, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31, 41, 51, 0.025) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent 82%);
+      pointer-events: none;
+    }
+
+    a { color: inherit; }
+    button, input, select, textarea { font: inherit; }
+
+    .container {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-inner { padding: 24px; }
+
+    .hero .panel-inner {
+      text-align: center;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(13, 118, 104, 0.08);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hero .eyebrow {
+      margin: 0 auto;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(13, 118, 104, 0.12);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      margin-top: 14px;
+      font-size: clamp(30px, 4vw, 50px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      margin-top: 14px;
+      max-width: 68ch;
+      color: var(--muted);
+      font-size: 16px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+      justify-content: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(31, 41, 51, 0.1);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .badge b { color: var(--text); }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label, .field-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(31, 41, 51, 0.13);
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus,
+    .action-button:focus-visible,
+    .scale-option input:focus-visible,
+    .sample-button:focus-visible {
+      border-color: rgba(13, 118, 104, 0.6);
+      box-shadow: 0 0 0 4px rgba(13, 118, 104, 0.12);
+      outline: none;
+    }
+
+    .progress-panel {
+      margin: 18px 0 22px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(31, 41, 51, 0.08);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.25s ease;
+    }
+
+    .instruction-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0 22px;
+    }
+
+    .instruction {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(31, 41, 51, 0.1);
+    }
+
+    .instruction strong { display: block; margin-bottom: 8px; }
+    .instruction p { color: var(--muted); font-size: 14px; }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+      font-size: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .scale-panel {
+      margin-bottom: 18px;
+    }
+
+    .scale-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid rgba(31, 41, 51, 0.11);
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    .scale-table th,
+    .scale-table td {
+      padding: 12px 14px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid rgba(31, 41, 51, 0.08);
+      border-right: 1px solid rgba(31, 41, 51, 0.08);
+      font-size: 14px;
+    }
+
+    .scale-table th:last-child,
+    .scale-table td:last-child { border-right: none; }
+    .scale-table tr:last-child th,
+    .scale-table tr:last-child td { border-bottom: none; }
+    .scale-table thead th { background: rgba(13, 118, 104, 0.08); }
+    .scale-table tbody th { width: 72px; color: var(--accent); }
+
+    .hint-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .study-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      padding: 22px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(31, 41, 51, 0.11);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 16px 36px rgba(43, 47, 54, 0.08);
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .card-head h3 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .prompt {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .prompt-cn {
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .prompt-translation {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .audio-box {
+      margin: 14px 0 16px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(31, 41, 51, 0.1);
+      background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.98));
+      display: grid;
+      gap: 10px;
+    }
+
+    audio { width: 100%; border-radius: 999px; }
+
+    .rating-block {
+      display: grid;
+      gap: 14px;
+    }
+
+    .rating-row {
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(31, 41, 51, 0.08);
+      background: rgba(255, 255, 255, 0.8);
+      display: grid;
+      gap: 10px;
+    }
+
+    .rating-row-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .rating-row-head strong {
+      font-size: 15px;
+    }
+
+    .rating-row-head span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .rating-reminder {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .rating-reminder strong {
+      font-weight: 700;
+    }
+
+    .scale-options {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .scale-option {
+      position: relative;
+    }
+
+    .scale-option input {
+      position: absolute;
+      opacity: 0;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .scale-option label {
+      display: grid;
+      place-items: center;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid rgba(31, 41, 51, 0.12);
+      background: rgba(255, 255, 255, 0.95);
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text);
+      transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+    }
+
+    .scale-option label:hover {
+      transform: translateY(-1px);
+      border-color: rgba(13, 118, 104, 0.3);
+    }
+
+    .scale-option input:checked + label {
+      background: linear-gradient(135deg, rgba(13, 118, 104, 0.12), rgba(199, 118, 24, 0.1));
+      border-color: rgba(13, 118, 104, 0.45);
+      color: var(--accent);
+    }
+
+    .row-legend {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .note-field {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .note-field textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .closing-thanks {
+      margin-top: 18px;
+      text-align: center;
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 1080px) {
+      .instruction-grid,
+      .final-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .container { width: min(100% - 20px, var(--max)); padding-top: 18px; }
+      .panel-inner,
+      .card { padding: 18px; }
+      h1 { font-size: 32px; }
+      .section-title,
+      .progress-top,
+      .rating-row-head,
+      .card-head {
+        flex-direction: column;
+        align-items: start;
+      }
+      .scale-options {
+        grid-template-columns: 1fr;
+      }
+      .scale-table th,
+      .scale-table td {
+        font-size: 13px;
+        padding: 10px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="panel">
+        <div class="panel-inner">
+          <span class="eyebrow">Subjective Evaluation</span>
+          <h1>MoTu-AudioGen的主观评测实验</h1>
+          <p class="lead">
+            感谢您参与本次主观评价实验！我们设计了一个音频音乐生成/音效生成的 MoE 模型，与歌曲生成不同的是，
+            我们主要生成各种环境音、音效与简短的音乐片段（30s）。您的反馈对我们改进文本到音频生成模型具有重要意义。
+          </p>
+          <div class="badge-row">
+            <span class="badge"><b>盲听设计</b> 不显示模型信息</span>
+            <span class="badge"><b>16 个样本</b> 按题号顺序完成</span>
+            <span class="badge"><b>5 分制</b> 两个评价维度</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel progress-panel">
+      <div class="panel-inner">
+        <div class="progress-top">
+          <span id="progressLabel">已完成 0 / 16 个题目</span>
+          <span id="progressHint">请先试听音频，再根据表格进行评分</span>
+        </div>
+        <div class="progress-bar" aria-hidden="true">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="instruction-grid">
+      <div class="instruction">
+        <strong>1. 先看文本，再听音频</strong>
+        <p>每个音频播放前都会显示对应的文本描述。请根据主观听感对样本进行评分。</p>
+      </div>
+      <div class="instruction">
+        <strong>2. 采用 5 分制</strong>
+        <p>评分维度包括“一致性”和“质量/自然度”。如果纯背景音或非语言类声音，请判断环境音是否匹配文本。</p>
+      </div>
+      <div class="instruction">
+        <strong>3. 可以重复播放</strong>
+        <p>每个音频和文本都可以反复播放与阅读。如果有具体感受，可在备注栏中简要说明。</p>
+      </div>
+    </section>
+
+    <section class="panel scale-panel">
+      <div class="panel-inner">
+        <div class="section-title">
+          <div>
+            <h2>评分标准</h2>
+            <p>以下表格给出了 1~5 分的对应含义。</p>
+          </div>
+        </div>
+        <table class="scale-table">
+          <thead>
+            <tr>
+              <th>分数</th>
+              <th>REL 一致性：文本描述与音频内容是否匹配</th>
+              <th>OVL 质量/自然度：音频是否清晰、自然、无明显瑕疵</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>1</th>
+              <td>完全不符合，几乎没有对应关系。</td>
+              <td>很差，噪声、失真或其他问题非常明显。</td>
+            </tr>
+            <tr>
+              <th>2</th>
+              <td>相关性很弱，只能勉强对应少量信息。</td>
+              <td>较差，存在比较明显的瑕疵或不自然感。</td>
+            </tr>
+            <tr>
+              <th>3</th>
+              <td>基本符合，但仍然能听出一定偏差。</td>
+              <td>一般，可接受，但不够自然或不够清晰。</td>
+            </tr>
+            <tr>
+              <th>4</th>
+              <td>大体符合，只有少量偏差。</td>
+              <td>较好，整体自然清晰，瑕疵较少。</td>
+            </tr>
+            <tr>
+              <th>5</th>
+              <td>非常符合，几乎完全匹配文本内容。</td>
+              <td>非常好，清晰自然，几乎没有明显问题。</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="hint-note">
+          纯背景音或非语言类声音场景下，REL 请重点评估环境音是否与文本描述相匹配；如果 prompt 出现音质相关提示词，OVL 评的是音质的一致性。
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <div>
+          <h2>样本与评分</h2>
+          <p>请按题号从 1 到 16 依次完成。</p>
+        </div>
+        <p>建议使用耳机在安静环境中进行评测</p>
+      </div>
+      <div id="studyList" class="study-list"></div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <div class="panel-inner">
+        <div class="section-title" style="margin-bottom: 8px;">
+          <div>
+            <h2>补充意见</h2>
+            <p>如果某些音频有明显噪声、失真、伪影或其他异常，可以写在这里。</p>
+          </div>
+        </div>
+
+        <div class="note-field">
+          <label for="comments" class="field-label">备注</label>
+          <textarea id="comments" placeholder="可简要说明你的感受。"></textarea>
+        </div>
+        <div class="footer-note">填写过程会自动保存在本地浏览器缓存中。</div>
+        <div class="closing-thanks">感谢您的参与！</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ITEMS = [
+      {
+        id: 1,
+        sampleId: '_fKntnlIYTQ',
+        model: 'MoTu',
+        prompt: 'The low quality recording features a live performance of a big band that consists of shimmering hi hats, steel pan melody, punchy snare, soft kick hits, bright brass melody, groovy double bass melody and cowbell percussion. The recording is a bit noisy and it sounds happy and fun.',
+        audio: 'assets/audio/motu/_fKntnlIYTQ.wav'
+      },
+      {
+        id: 2,
+        sampleId: '_fKntnlIYTQ',
+        model: 'Stable Audio',
+        prompt: 'The low quality recording features a live performance of a big band that consists of shimmering hi hats, steel pan melody, punchy snare, soft kick hits, bright brass melody, groovy double bass melody and cowbell percussion. The recording is a bit noisy and it sounds happy and fun.',
+        audio: 'assets/audio/stable-audio/_fKntnlIYTQ.wav'
+      },
+      {
+        id: 3,
+        sampleId: '105355',
+        model: 'MusicGen',
+        prompt: 'Continuous thunder',
+        audio: 'assets/audio/musicgen/10s/105355.wav'
+      },
+      {
+        id: 4,
+        sampleId: '105355',
+        model: 'MoTu',
+        prompt: 'Continuous thunder',
+        audio: 'assets/audio/motu/105355.wav'
+      },
+      {
+        id: 5,
+        sampleId: '24',
+        model: 'audioldm2',
+        prompt: 'a danceable electronic track in the genre of dance',
+        audio: 'assets/audio/audioldm2/30s/24.wav'
+      },
+      {
+        id: 6,
+        sampleId: '24',
+        model: 'MoTu',
+        prompt: 'a danceable electronic track in the genre of dance',
+        audio: 'assets/audio/motu/24.wav'
+      },
+      {
+        id: 7,
+        sampleId: '_hYBs0xee9Y',
+        model: 'Stable Audio',
+        prompt: 'The low quality recording features a passionately played electric guitar solo melody with a chorus pedal effect on. The recording is in mono and it is noisy.',
+        audio: 'assets/audio/stable-audio/_hYBs0xee9Y.wav'
+      },
+      {
+        id: 8,
+        sampleId: '_hYBs0xee9Y',
+        model: 'MoTu',
+        prompt: 'The low quality recording features a passionately played electric guitar solo melody with a chorus pedal effect on. The recording is in mono and it is noisy.',
+        audio: 'assets/audio/motu/_hYBs0xee9Y.wav'
+      },
+      {
+        id: 9,
+        sampleId: '43613',
+        model: 'Stable Audio',
+        prompt: 'Small aircraft taking off and receding into the distance',
+        audio: 'assets/audio/stable-audio/43613.wav'
+      },
+      {
+        id: 10,
+        sampleId: '43613',
+        model: 'MoTu',
+        prompt: 'Small aircraft taking off and receding into the distance',
+        audio: 'assets/audio/motu/43613.wav'
+      },
+      {
+        id: 11,
+        sampleId: '105687',
+        model: 'MusicGen',
+        prompt: 'A male speech and metal clanging.',
+        audio: 'assets/audio/musicgen/10s/105687.wav'
+      },
+      {
+        id: 12,
+        sampleId: '105687',
+        model: 'MoTu',
+        prompt: 'A male speech and metal clanging.',
+        audio: 'assets/audio/motu/105687.wav'
+      },
+      {
+        id: 13,
+        sampleId: '105383',
+        model: 'MoTu',
+        prompt: 'A man talking before and after a young kid talks as plastic rattles followed by an electronic beep',
+        audio: 'assets/audio/motu/105383.wav'
+      },
+      {
+        id: 14,
+        sampleId: '105383',
+        model: 'Stable Audio',
+        prompt: 'A man talking before and after a young kid talks as plastic rattles followed by an electronic beep',
+        audio: 'assets/audio/stable-audio/105383.wav'
+      },
+      {
+        id: 15,
+        sampleId: '33',
+        model: 'audioldm2',
+        prompt: 'Bluesy rock and roll boogie with piano and distorted guitars, male singer and roomy drums.',
+        audio: 'assets/audio/audioldm2/30s/33.wav'
+      },
+      {
+        id: 16,
+        sampleId: '33',
+        model: 'MusicGen',
+        prompt: 'Bluesy rock and roll boogie with piano and distorted guitars, male singer and roomy drums.',
+        audio: 'assets/audio/musicgen/30s/33.wav'
+      }
+    ];
+
+    const PROMPT_ZH = {
+      1: '这段低质量录音呈现了一场大型乐队的现场演奏，包含闪烁的踩镲、钢鼓旋律、结实的军鼓、轻柔的底鼓击打、明亮的铜管旋律、律动感十足的低音提琴旋律，以及牛铃打击。录音有些噪声，整体听起来欢快有趣。',
+      2: '这段低质量录音呈现了一场大型乐队的现场演奏，包含闪烁的踩镲、钢鼓旋律、结实的军鼓、轻柔的底鼓击打、明亮的铜管旋律、律动感十足的低音提琴旋律，以及牛铃打击。录音有些噪声，整体听起来欢快有趣。',
+      3: '持续的雷声。',
+      4: '持续的雷声。',
+      5: '一首适合跳舞的电子音乐，属于 dance 风格。',
+      6: '一首适合跳舞的电子音乐，属于 dance 风格。',
+      7: '这段低质量录音呈现了一段充满激情的电吉他独奏旋律，并带有合唱效果器。录音是单声道且带有噪声。',
+      8: '这段低质量录音呈现了一段充满激情的电吉他独奏旋律，并带有合唱效果器。录音是单声道且带有噪声。',
+      9: '一架小型飞机起飞并逐渐远去。',
+      10: '一架小型飞机起飞并逐渐远去。',
+      11: '男性说话声以及金属碰撞声。',
+      12: '男性说话声以及金属碰撞声。',
+      13: '一个男人在说话，之后一个小孩说话，伴随着塑料摩擦声，最后出现电子提示音。',
+      14: '一个男人在说话，之后一个小孩说话，伴随着塑料摩擦声，最后出现电子提示音。',
+      15: '一段布鲁斯风味的摇滚 boogie，带有钢琴、失真吉他、男声和宽松的鼓组。',
+      16: '一段布鲁斯风味的摇滚 boogie，带有钢琴、失真吉他、男声和宽松的鼓组。'
+    };
+
+    const studyList = document.getElementById('studyList');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const progressHint = document.getElementById('progressHint');
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderItems() {
+      studyList.innerHTML = ITEMS.map((item) => `
+        <article class="card" data-item-id="${item.id}">
+          <div class="card-head">
+            <div>
+              <h3>题号 ${item.id}</h3>
+              <p class="prompt">${escapeHtml(item.prompt)}</p>
+              <p class="prompt-cn">${escapeHtml(PROMPT_ZH[item.id])}</p>
+            </div>
+          </div>
+
+          <div class="audio-box">
+            <audio controls preload="none" src="${item.audio}"></audio>
+          </div>
+
+          <div class="rating-block">
+            <div class="rating-row">
+              <div class="rating-row-head">
+                <strong>REL 一致性</strong>
+                <span>文本描述与音频内容是否匹配</span>
+              </div>
+              <div class="scale-options" data-dimension="consistency" data-item="${item.id}">
+                ${makeScaleOptions(item.id, 'consistency')}
+              </div>
+              <div class="row-legend">
+                <span>1 = 完全不符合</span>
+                <span>3 = 基本符合</span>
+                <span>5 = 非常符合</span>
+              </div>
+            </div>
+
+            <div class="rating-row">
+              <div class="rating-row-head">
+                <strong>OVL 质量 / 自然度</strong>
+                <span>音频是否清晰、自然、无明显瑕疵</span>
+              </div>
+              <div class="scale-options" data-dimension="quality" data-item="${item.id}">
+                ${makeScaleOptions(item.id, 'quality')}
+              </div>
+              <div class="row-legend">
+                <span>1 = 很差</span>
+                <span>3 = 一般</span>
+                <span>5 = 非常好</span>
+              </div>
+              <div class="rating-reminder">
+                <strong>提醒：</strong>如果 prompt 出现音质相关提示词，请将 OVL 理解为音质的一致性来评分。
+              </div>
+            </div>
+          </div>
+
+          <div class="note-field">
+            <label class="field-label" for="note-${item.id}">备注</label>
+            <textarea id="note-${item.id}" placeholder="可简要说明你的感受，例如：噪声、失真、自然度、文本匹配问题等。"></textarea>
+          </div>
+        </article>
+      `).join('');
+
+      bindEvents();
+      updateProgress();
+    }
+
+    function makeScaleOptions(itemId, dimension) {
+      return [1, 2, 3, 4, 5].map((value) => `
+        <div class="scale-option">
+          <input id="${dimension}-${itemId}-${value}" type="radio" name="${dimension}-${itemId}" value="${value}">
+          <label for="${dimension}-${itemId}-${value}">${value}</label>
+        </div>
+      `).join('');
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('input[type="radio"]').forEach((radio) => {
+        radio.addEventListener('change', () => {
+          updateProgress();
+          persistDraft(false);
+        });
+      });
+
+      document.querySelectorAll('textarea, input, select').forEach((field) => {
+        field.addEventListener('input', () => persistDraft(false));
+        field.addEventListener('change', () => persistDraft(false));
+      });
+    }
+
+    function getDimensionValue(itemId, dimension) {
+      const checked = document.querySelector(`input[name="${dimension}-${itemId}"]:checked`);
+      return checked ? Number(checked.value) : 0;
+    }
+
+    function updateProgress() {
+      const completed = ITEMS.filter((item) => getDimensionValue(item.id, 'consistency') > 0 && getDimensionValue(item.id, 'quality') > 0).length;
+      const pct = Math.round((completed / ITEMS.length) * 100);
+      progressFill.style.width = `${pct}%`;
+      progressLabel.textContent = `已完成 ${completed} / ${ITEMS.length} 个题目`;
+      progressHint.textContent = completed === ITEMS.length ? '全部题目已填写完毕，可以导出结果。' : '请先试听音频，再根据表格进行评分';
+    }
+
+    function collectPayload() {
+      return {
+        capturedAt: new Date().toISOString(),
+        comments: document.getElementById('comments').value.trim(),
+        responses: ITEMS.map((item) => ({
+          id: item.id,
+          sampleId: item.sampleId,
+          model: item.model,
+          prompt: item.prompt,
+          audio: item.audio,
+          consistency: getDimensionValue(item.id, 'consistency'),
+          quality: getDimensionValue(item.id, 'quality'),
+          note: document.getElementById(`note-${item.id}`).value.trim()
+        }))
+      };
+    }
+
+    function persistDraft(showMessage = true) {
+      const payload = collectPayload();
+      localStorage.setItem('moe-subjective-questionnaire-draft', JSON.stringify(payload));
+    }
+
+    function restoreDraft() {
+      const saved = localStorage.getItem('moe-subjective-questionnaire-draft');
+      if (!saved) {
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(saved);
+        document.getElementById('comments').value = payload.comments || '';
+
+        (payload.responses || []).forEach((response) => {
+          const consistency = document.querySelector(`input[name="consistency-${response.id}"][value="${response.consistency}"]`);
+          const quality = document.querySelector(`input[name="quality-${response.id}"][value="${response.quality}"]`);
+          const note = document.getElementById(`note-${response.id}`);
+          if (consistency) { consistency.checked = true; }
+          if (quality) { quality.checked = true; }
+          if (note) { note.value = response.note || ''; }
+        });
+
+        updateProgress();
+      } catch (error) {
+        localStorage.removeItem('moe-subjective-questionnaire-draft');
+      }
+    }
+
+    document.getElementById('comments').addEventListener('input', () => persistDraft(false));
+    document.getElementById('comments').addEventListener('change', () => persistDraft(false));
+    document.querySelectorAll('textarea').forEach((field) => {
+      if (field.id !== 'comments') {
+        field.addEventListener('input', () => persistDraft(false));
+        field.addEventListener('change', () => persistDraft(false));
+      }
+    });
+
+    renderItems();
+    restoreDraft();
+    persistDraft(false);
+  </script>
+</body>
+</html>
